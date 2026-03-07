@@ -1,0 +1,7 @@
+playwright
+pymupdf
+psycopg2-binary
+chromadb
+google-genai
+python-dotenv
+requests

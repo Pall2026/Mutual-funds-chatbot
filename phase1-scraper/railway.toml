@@ -1,0 +1,6 @@
+[build]
+builder = "dockerfile"
+
+[cron]
+schedule = "0 2 1 * *"
+command = "python scraper.py && python embedder.py"
