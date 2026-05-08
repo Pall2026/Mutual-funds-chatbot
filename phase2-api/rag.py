@@ -10,8 +10,8 @@ load_dotenv()
 # Configuration from env/ARCHITECTURE.md
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 # ChromaDB path removed. Using Neon pgvector.
-EMBEDDING_MODEL = "models/gemini-embedding-001"
-LLM_MODEL = "gemini-2.5-flash"
+EMBEDDING_MODEL = "models/text-embedding-004"
+LLM_MODEL = "gemini-1.5-flash-latest"
 print(f"INFO: Using LLM model: {LLM_MODEL}")
 
 client = None
