@@ -25,16 +25,11 @@ class AskResponse(BaseModel):
     last_updated: Optional[str] = None
     response_type: str # "answer" | "refusal" | "pii_block"
 
-# Init Chroma collection at startup
-_collection = None
+# ChromaDB collection removed. pgvector search handled inside rag.py.
 
 @app.on_event("startup")
 def startup_event():
-    global _collection
-    try:
-        _collection = rag.init_chroma()
-    except Exception as e:
-        print(f"Error initializing ChromaDB: {e}")
+    pass # init_chroma no longer needed
 
 @app.get("/health")
 def health_check():
@@ -46,37 +41,56 @@ def ask_question(req: AskRequest):
     
     # 1. Guardrail: PII Block
     if guardrails.check_pii(question):
+        ans = "I detected personal information (PII) in your query. Please remove it and try again."
+        rtype = "pii_block"
+        print(f"DEBUG returning: {rtype} - {ans[:50]}")
         return AskResponse(
-            answer="I detected personal information (PII) in your query. Please remove it and try again.",
-            response_type="pii_block"
+            answer=ans,
+            response_type=rtype
         )
     
     # 2. Guardrail: Advice Refusal
     if guardrails.check_advice(question):
+        ans = "I am a facts-only assistant and cannot provide investment advice or recommendations."
+        rtype = "refusal"
+        print(f"DEBUG returning: {rtype} - {ans[:50]}")
         return AskResponse(
-            answer="I am a facts-only assistant and cannot provide investment advice or recommendations.",
-            source_url="https://www.amfiindia.com/investor-corner",
-            response_type="refusal"
+            answer=ans,
+            source_url="https://www.sbimf.com",
+            response_type=rtype
         )
     
     # 3. RAG Flow
     try:
-        query_embedding = rag.embed_query(question)
-        search_results = rag.search_chunks(_collection, query_embedding, n_results=3)
-        
-        # Check distance threshold (simplified for now: if no results or very far)
-        # Using ARCHITECTURE.md suggestion: if cosine distance > 0.4
-        # ChromaDB results['distances'] are often 1-cosine_similarity or squared L2
-        # We will assume some relevant context is found if any result exists.
-        
-        if not search_results['documents'] or not search_results['documents'][0]:
-            return AskResponse(
-                answer="I could not find a reliable source for this. Please visit sbimf.com directly.",
-                response_type="refusal"
-            )
+        print(f"DEBUG: Question received: {question}")
+        try:
+            query_embedding = rag.embed_query(question)
+            search_results = rag.search_chunks(None, query_embedding, n_results=3, question=question)
             
-        context = "\n".join(search_results['documents'][0])
-        answer = rag.generate_answer(question, context)
+            if not search_results['documents'] or not search_results['documents'][0]:
+                ans = "I could not find a reliable source for this. Please visit sbimf.com directly."
+                rtype = "refusal"
+                print(f"DEBUG returning: {rtype} - {ans[:50]}")
+                return AskResponse(
+                    answer=ans,
+                    response_type=rtype
+                )
+                
+            context = "\n".join(search_results['documents'][0])
+            answer = rag.generate_answer(question, context)
+        except Exception as e:
+            import traceback
+            print(f"RAG ERROR: {type(e).__name__}: {e}")
+            print(traceback.format_exc())
+            ans = "Something went wrong. Please try again."
+            rtype = "error"
+            print(f"DEBUG returning: {rtype} - {ans[:50]}")
+            return AskResponse(
+                answer=ans,
+                source_url=None,
+                last_updated=None,
+                response_type=rtype
+            )
         
         # Extract metadata from top result
         top_meta = search_results['metadatas'][0][0]
@@ -86,16 +100,26 @@ def ask_question(req: AskRequest):
         # Get scraped_at from DB
         last_updated = str(db.get_field_scraped_at(field_id)) if field_id else None
         
+        response_type = "answer" if "I could not find" not in answer else "refusal"
+        print(f"DEBUG returning: {response_type} - {answer[:50]}")
+
         return AskResponse(
             answer=answer,
             source_url=source_url,
             last_updated=last_updated,
-            response_type="answer" if "I could not find" not in answer else "refusal"
+            response_type=response_type
         )
         
     except Exception as e:
-        print(f"Error in /ask: {e}")
+        import traceback
+        print(f"CRITICAL ERROR in /ask: {type(e).__name__}: {e}")
+        print(traceback.format_exc())
+        ans = "Something went wrong. Please try again."
+        rtype = "error"
+        print(f"DEBUG returning: {rtype} - {ans[:50]}")
         return AskResponse(
-            answer="An error occurred while processing your request.",
-            response_type="refusal"
+            answer=ans,
+            source_url=None,
+            last_updated=None,
+            response_type=rtype
         )

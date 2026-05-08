@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 46, "column": 0}, "map": {"version":3,"sources":["file:///Users/pallavipandey/Anitigravity%20projects/Mutual-funds-chatbot/phase3-frontend/app/api/ask/route.ts"],"sourcesContent":["import { NextRequest, NextResponse } from 'next/server'\n\nexport async function POST(req: NextRequest) {\n    const body = await req.json()\n\n    const apiUrl = process.env.API_URL\n\n    const response = await fetch(`${apiUrl}/ask`, {\n        method: 'POST',\n        headers: { 'Content-Type': 'application/json' },\n        body: JSON.stringify(body)\n    })\n\n    const data = await response.json()\n    console.log(\"DEBUG: source_url received:\", data.source_url)\n    return NextResponse.json(data)\n}\n"],"names":[],"mappings":";;;;AAAA;;AAEO,eAAe,KAAK,GAAgB;IACvC,MAAM,OAAO,MAAM,IAAI,IAAI;IAE3B,MAAM,SAAS,QAAQ,GAAG,CAAC,OAAO;IAElC,MAAM,WAAW,MAAM,MAAM,GAAG,OAAO,IAAI,CAAC,EAAE;QAC1C,QAAQ;QACR,SAAS;YAAE,gBAAgB;QAAmB;QAC9C,MAAM,KAAK,SAAS,CAAC;IACzB;IAEA,MAAM,OAAO,MAAM,SAAS,IAAI;IAChC,QAAQ,GAAG,CAAC,+BAA+B,KAAK,UAAU;IAC1D,OAAO,gJAAY,CAAC,IAAI,CAAC;AAC7B"}}]
+}

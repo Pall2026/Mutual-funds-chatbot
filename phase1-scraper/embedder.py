@@ -5,8 +5,8 @@ Processes in batches of 20. Waits 1 second between batches.
 On 429 rate limit: waits 30 seconds, retries once.
 On retry failure: logs error, skips row, continues.
 
-NOTE (local testing): Embeddings stored in ChromaDB (./chroma_data/).
-Switch back to pgvector insert_chunk() for Railway deployment.
+NOTE: Embeddings are now stored in Neon pgvector (PostgreSQL).
+ChromaDB dependency has been removed.
 """
 
 import os
@@ -17,30 +17,17 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-import chromadb
 from google import genai
 from google.genai import types
-from db import get_active_fields
+from db import get_active_fields, insert_chunk
 
 # ---------------------------------------------------------------------------
-# ChromaDB setup — local persistent store in ./chroma_data/
-# NOTE: swap this block for pgvector insert_chunk() on Railway.
+# ChromaDB setup removed.
+# Using Neon pgvector via db.insert_chunk().
 # ---------------------------------------------------------------------------
-
-CHROMA_PATH = "./chroma_data"
-_chroma_client = chromadb.PersistentClient(path=CHROMA_PATH)
 
 # Dimension for gemini-embedding-001 is 3072
 EMBEDDING_DIM = 3072
-
-try:
-    _chroma_collection = _chroma_client.get_collection(name="sbi_mf_chunks")
-    # If we are here, collection exists. We might need to check dimensions if it fails later.
-except:
-    _chroma_collection = _chroma_client.create_collection(
-        name="sbi_mf_chunks",
-        metadata={"hnsw:space": "cosine"},
-    )
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -173,20 +160,17 @@ def main():
                 continue
 
             try:
-                # ChromaDB upsert: field_id as the document ID (idempotent re-runs)
-                _chroma_collection.upsert(
-                    ids=[str(field_id)],
-                    embeddings=[embedding],
-                    documents=[chunk_text],
-                    metadatas=[{
-                        "field_id": str(field_id),
-                        "source_url": source_url,
-                        "scheme_name": scheme_name,
-                    }],
+                # Neon pgvector insert (plain insert)
+                insert_chunk(
+                    field_id=field_id,
+                    chunk_text=chunk_text,
+                    embedding=embedding,
+                    source_url=source_url,
+                    scheme_name=scheme_name
                 )
                 embedded += 1
             except Exception as e:
-                print(f"  ERROR inserting chunk for row {field_id}: {e}. Skipping.")
+                print(f"  ERROR inserting chunk into Neon for row {field_id}: {e}. Skipping.")
                 skipped += 1
 
         # Wait between batches (except after the last batch)

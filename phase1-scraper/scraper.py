@@ -198,7 +198,10 @@ def extract_fields_from_text(full_text: str) -> dict:
         text,
     )
     if m:
-        fields["benchmark_index"] = m.group(1).strip().title()
+        val = m.group(1).strip().title()
+        # Clean the value if it captured the prefix again
+        val = re.sub(r"^Scheme Benchmark[:\-\s]*", "", val, flags=re.IGNORECASE).title().strip()
+        fields["benchmark_index"] = val
 
     # fund_manager
     m = re.search(
@@ -209,13 +212,24 @@ def extract_fields_from_text(full_text: str) -> dict:
         fields["fund_manager"] = m.group(1).strip()
 
     # aum (Refined)
-    # Looking for ₹ followed by digits, handle newlines and intermediate text like "as on date"
+    # Using negative lookahead to skip 20xx years
     m = re.search(
-        r"aum[\s\n\r\w,]+?(?:rs\.?\s*|inr\s*|₹\s*)(\d[\d,.]+(?:\s*(?:cr|crore|lakh|million|billion))?)|assets under management[\s\n\r\w,]+?(?:rs\.?\s*|inr\s*|₹\s*)(\d[\d,.]+(?:\s*(?:cr|crore|lakh|million|billion))?)",
+        r"aum[\s\S]*?(?:rs\.?\s*|inr\s*|₹\s*)?((?!20\d{2}\b)[\d,]+\.?\d*)\s*(?:crores?|cr\.?)",
         text,
     )
+    if not m:
+        # Fallback to assets under management label
+        m = re.search(
+            r"assets under management[\s\S]*?(?:rs\.?\s*|inr\s*|₹\s*)?((?!20\d{2}\b)[\d,]+\.?\d*)\s*(?:crores?|cr\.?)",
+            text,
+        )
     if m:
-        fields["aum"] = (m.group(1) or m.group(2)).strip()
+        val_str = m.group(1).strip().replace(',', '')
+        try:
+            val_float = float(val_str)
+            fields["aum"] = f"₹{val_float:,.2f} Crores"
+        except ValueError:
+            fields["aum"] = f"₹{m.group(1).strip()} Crores"
 
     # scheme_category (Refined)
     m = re.search(
@@ -297,12 +311,6 @@ async def scrape_scheme_page(page, scheme_info: dict, index: int, total: int) ->
                 tab_text = await page.evaluate("() => document.body.innerText")
                 tab_text_lower = tab_text.lower()
                 
-                # Debug: Print full text for SBI Bluechip Fund
-                if os.getenv("DEBUG_SCRAPE") == "True" and scheme_name == "SBI Bluechip Fund":
-                    print(f"\n--- DEBUG: FULL TEXT AFTER TAB CLICK FOR {scheme_name} ---")
-                    print(tab_text_lower) 
-                    print(f"--- DEBUG END ---\n")
-
                 # Extract expense ratios with refined patterns from inspection
                 # 1. "Direct Plan" or "Expense Ratio Direct"
                 m_direct = re.search(r"expense\s*ratio\s*direct[^\n]*?:\s*(\d+\.?\d*)|direct\s*plan[^\n]*?:\s*(\d+\.?\d*)", tab_text_lower)

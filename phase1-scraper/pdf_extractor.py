@@ -66,9 +66,9 @@ FIELD_PATTERNS = {
         r"managed\s*by[:\-\s]+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3})",
     ],
     "aum": [
-        r"aum[^\n]*?(?:rs\.?\s*|inr\s*|₹\s*)?(\d[\d,.]*\s*(?:cr|crore|lakh|million|billion)?)[^\n]*",
-        r"assets\s*under\s*management[^\n]*?(?:rs\.?\s*|inr\s*|₹\s*)?(\d[\d,.]*\s*(?:cr|crore|lakh|million|billion)?)[^\n]*",
-        r"corpus[^\n]*?(?:rs\.?\s*|inr\s*|₹\s*)?(\d[\d,.]*\s*(?:cr|crore|lakh|million|billion)?)[^\n]*",
+        r"aum[\s\S]*?(?:rs\.?\s*|inr\s*|₹\s*)?((?!20\d{2}\b)(?:\d[\d,.]*\d|\d\s*(?:cr|crore|lakh|million|billion)))[^\n]*",
+        r"assets\s*under\s*management[\s\S]*?(?:rs\.?\s*|inr\s*|₹\s*)?((?!20\d{2}\b)(?:\d[\d,.]*\d|\d\s*(?:cr|crore|lakh|million|billion)))[^\n]*",
+        r"corpus[\s\S]*?(?:rs\.?\s*|inr\s*|₹\s*)?((?!20\d{2}\b)(?:\d[\d,.]*\d|\d\s*(?:cr|crore|lakh|million|billion)))[^\n]*",
     ],
     "scheme_category": [
         r"(?:scheme|fund)\s*categor[yi][^\n]*?:\s*([^\n]+)",

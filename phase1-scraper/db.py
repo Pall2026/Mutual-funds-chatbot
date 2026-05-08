@@ -19,6 +19,12 @@ def get_connection():
     database_url = os.getenv("DATABASE_URL")
     if not database_url:
         raise ValueError("DATABASE_URL environment variable is not set.")
+    
+    if '?' not in database_url:
+        database_url += '?sslmode=require'
+    elif 'sslmode' not in database_url:
+        database_url += '&sslmode=require'
+        
     return psycopg2.connect(database_url)
 
 
@@ -30,8 +36,8 @@ def init_db():
     conn = get_connection()
     try:
         with conn.cursor() as cur:
-            # NOTE: pgvector extension omitted — not available locally.
-            # Restore for Railway: cur.execute("CREATE EXTENSION IF NOT EXISTS vector;")
+            # Enable pgvector
+            cur.execute("CREATE EXTENSION IF NOT EXISTS vector;")
 
             # Main table: one row per scraped field per scheme
             cur.execute("""
@@ -47,8 +53,21 @@ def init_db():
                 );
             """)
 
-            # NOTE: chunks table omitted — embeddings stored in ChromaDB locally.
-            # Restore for Railway: CREATE TABLE chunks (...) with vector(768) column.
+            # Chunks table for embeddings
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS chunks (
+                    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    field_id    UUID REFERENCES scheme_fields(id),
+                    chunk_text  TEXT NOT NULL,
+                    embedding   vector(3072),
+                    source_url  TEXT NOT NULL,
+                    scheme_name TEXT NOT NULL,
+                    embedded_at TIMESTAMPTZ NOT NULL DEFAULT now()
+                );
+            """)
+
+            # HNSW index for vector search
+            cur.execute("CREATE INDEX ON chunks USING hnsw (embedding vector_cosine_ops);")
 
             cur.execute("""
                 CREATE INDEX IF NOT EXISTS scheme_fields_scheme_idx
@@ -93,7 +112,9 @@ def insert_field(scheme_name, field_name, field_value, source_url, is_pdf=False)
                   field_value = EXCLUDED.field_value,
                   source_url = EXCLUDED.source_url,
                   scraped_at = NOW(),
+                  is_pdf = EXCLUDED.is_pdf,
                   status = 'active'
+                WHERE (scheme_fields.is_pdf = TRUE OR EXCLUDED.is_pdf = FALSE)
                 RETURNING id;
                 """,
                 (scheme_name, field_name, field_value, source_url, is_pdf),
@@ -126,8 +147,25 @@ def get_active_fields():
         conn.close()
 
 
-# insert_chunk() removed — embeddings are stored in ChromaDB for local testing.
-# Restore this function when deploying to Railway with pgvector.
+def insert_chunk(field_id, chunk_text, embedding, source_url, scheme_name):
+    """
+    Insert an embedding chunk into the chunks table.
+    Uses pgvector (embedding::vector) for storage.
+    """
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO chunks 
+                (field_id, chunk_text, embedding, source_url, scheme_name)
+                VALUES (%s, %s, %s::vector, %s, %s);
+                """,
+                (field_id, chunk_text, embedding, source_url, scheme_name),
+            )
+            conn.commit()
+    finally:
+        conn.close()
 
 
 if __name__ == "__main__":

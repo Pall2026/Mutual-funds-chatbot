@@ -86,9 +86,11 @@ CREATE INDEX ON scheme_fields(field_name);
 
 ---
 
-## CHROMADB (VECTOR STORAGE)
-Local only — Phase 1 testing. 
-Swap to Neon pgvector for production deployment.
+## NEON PGVECTOR (VECTOR STORAGE)
+Primary store for all production embeddings. 
+Gemini gemini-embedding-001 vectors (3072 dims) are stored in the 'chunks' table.
+Similarity search uses Cosine distance (vector_cosine_ops).
+Threshold: 1 - (embedding <=> %s::vector) > 0.6 (Similarity).
 
 ---
 

@@ -1,7 +1,7 @@
 playwright
 pymupdf
 psycopg2-binary
-chromadb
+pgvector
 google-genai
 python-dotenv
 requests
