@@ -40,7 +40,7 @@ if not GEMINI_API_KEY:
 
 client = genai.Client(api_key=GEMINI_API_KEY)
 
-EMBEDDING_MODEL = "models/text-embedding-004"
+EMBEDDING_MODEL = "models/gemini-embedding-001"
 BATCH_SIZE = 20
 BATCH_DELAY_SECONDS = 1       # wait between batches
 RATE_LIMIT_WAIT_SECONDS = 30  # wait on 429 before retry

@@ -4,19 +4,25 @@ from typing import List, Optional
 from google import genai
 from google.genai import types
 from dotenv import load_dotenv
+from groq import Groq
 
 load_dotenv()
 
 # Configuration from env/ARCHITECTURE.md
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-# ChromaDB path removed. Using Neon pgvector.
-EMBEDDING_MODEL = "models/text-embedding-004"
-LLM_MODEL = "gemini-1.5-flash-latest"
-print(f"INFO: Using LLM model: {LLM_MODEL}")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+
+EMBEDDING_MODEL = "models/gemini-embedding-001"
+GROQ_MODEL = "llama-3.1-8b-instant"
+print(f"INFO: Using Groq model: {GROQ_MODEL}")
 
 client = None
 if GEMINI_API_KEY:
     client = genai.Client(api_key=GEMINI_API_KEY)
+
+groq_client = None
+if GROQ_API_KEY:
+    groq_client = Groq(api_key=GROQ_API_KEY)
 
 def init_chroma():
     """
@@ -109,35 +115,27 @@ def search_chunks(collection, embedding: List[float], n_results: int = 3, questi
 
 def generate_answer(question: str, context: str) -> str:
     """
-    Generate a facts-only answer using Gemini 2.0 Flash.
+    Generate a facts-only answer using Groq Llama-3.1.
     """
-    prompt = f"""
-You are a facts-only assistant for SBI Mutual Fund 
-schemes. Answer in maximum 3 sentences using ONLY 
-the context provided below. Do not add any 
-information not present in the context. Do not give 
-investment advice or performance predictions. If the 
-context is insufficient, say exactly: I could not 
-find a reliable source for this. Please visit 
-sbimf.com directly.
+    if not context or "I could not find a reliable source" in context:
+        return "I could not find a reliable source for this. Please visit sbimf.com directly."
 
-CONTEXT:
-{context}
-
-QUESTION:
-{question}
-"""
-    
-    for attempt in range(3):
-        try:
-            response = client.models.generate_content(
-                model=LLM_MODEL,
-                contents=prompt
-            )
-            return response.text.strip()
-        except Exception as e:
-            if '429' in str(e) and attempt < 2:
-                print(f"Quota hit, waiting 5s (attempt {attempt+1}/3)")
-                time.sleep(5)
-                continue
-            raise e
+    try:
+        completion = groq_client.chat.completions.create(
+            model=GROQ_MODEL,
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a facts-only assistant for SBI Mutual Fund schemes. Answer in maximum 3 sentences using ONLY the context provided. Do not add information not in context. Do not give investment advice."
+                },
+                {
+                    "role": "user", 
+                    "content": f"Context:\n{context}\n\nQuestion: {question}"
+                }
+            ],
+            max_tokens=200
+        )
+        return completion.choices[0].message.content.strip()
+    except Exception as e:
+        print(f"Groq API error: {e}")
+        return "Something went wrong with the answer generation. Please try again."

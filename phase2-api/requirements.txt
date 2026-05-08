@@ -6,3 +6,4 @@ pgvector
 python-dotenv
 pytest
 httpx
+groq
