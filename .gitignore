@@ -58,3 +58,5 @@ dist/
 .npm
 chroma_data/
 phase1-scraper/chroma_data/
+chroma_data/
+phase1-scraper/chroma_data/
