@@ -4,6 +4,16 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
 
     const apiUrl = process.env.API_URL
+    console.log('API_URL:', apiUrl)
+
+    if (!apiUrl) {
+        return NextResponse.json({
+            answer: 'API URL not configured',
+            source_url: null,
+            last_updated: null,
+            response_type: 'error'
+        })
+    }
 
     const response = await fetch(`${apiUrl}/ask`, {
         method: 'POST',
