@@ -602,6 +602,21 @@ async def main():
         print(f"  ERROR processing KIM/SID PDFs: {e}")
         failures += 1
 
+    # --- STEP 7: Save hardcoded fund managers LAST (after all PDFs) ---
+    # This ensures PDF extraction never overwrites the correct values.
+    print("\nSaving hardcoded fund managers...")
+    for scheme_info in SCHEME_PAGES:
+        scheme_name = scheme_info["scheme_name"]
+        if scheme_name in FUND_MANAGERS:
+            insert_field(
+                scheme_name=scheme_name,
+                field_name="fund_manager",
+                field_value=FUND_MANAGERS[scheme_name],
+                source_url=scheme_info["url"],
+                is_pdf=False,
+            )
+            print(f"  {scheme_name}: {FUND_MANAGERS[scheme_name]}")
+
     # --- Final summary ---
     print(f"\n{'='*60}")
     print(f"Scraping complete. Successes: {successes}, Failures: {failures}")

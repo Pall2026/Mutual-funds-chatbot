@@ -112,8 +112,10 @@ def insert_field(scheme_name, field_name, field_value, source_url, is_pdf=False)
                 ON CONFLICT (scheme_name, field_name) 
                 DO UPDATE SET 
                   field_value = EXCLUDED.field_value,
-                  source_url = CASE 
-                    WHEN scheme_fields.is_pdf = TRUE THEN scheme_fields.source_url
+                  source_url = CASE
+                    WHEN scheme_fields.source_url LIKE '%%/kim-%%' THEN scheme_fields.source_url
+                    WHEN scheme_fields.source_url LIKE '%%/sid-%%' THEN scheme_fields.source_url
+                    WHEN scheme_fields.source_url LIKE '%%factsheet%%' THEN scheme_fields.source_url
                     ELSE EXCLUDED.source_url
                   END,
                   is_pdf = CASE

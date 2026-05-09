@@ -63,8 +63,8 @@ FIELD_PATTERNS = {
         r"(?:benchmark|index)[^\n]*?:\s*([^\n]+)",
     ],
     "fund_manager": [
-        r"fund\s*manager[s]?[:\-\s]+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3})",
-        r"managed\s*by[:\-\s]+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3})",
+        r"fund\s*manager[s]?[:\-\s]+([A-Za-z]+(?:\s+[A-Za-z]+){1,3})",
+        r"managed\s*by[:\-\s]+([A-Za-z]+(?:\s+[A-Za-z]+){1,3})",
     ],
     "aum": [
         r"AUM\s+as\s+on[^|]*\|\s*₹?\s*([\d,]+\.?\d*)\s*(?:Crores?|Cr\.?)",
@@ -139,10 +139,15 @@ def find_field(field_name: str, text: str, scheme_name: str) -> Optional[str]:
     
     patterns = FIELD_PATTERNS.get(field_name, [])
     text_lower = text.lower()
+    
+    if field_name == "fund_manager":
+        search_text = text  # original case
+    else:
+        search_text = text_lower
 
     for pattern in patterns:
         try:
-            match = re.search(pattern, text_lower, re.IGNORECASE | re.MULTILINE)
+            match = re.search(pattern, search_text, re.IGNORECASE | re.MULTILINE)
             if match:
                 # Return the first captured group, stripped
                 value = match.group(1).strip()
@@ -212,8 +217,14 @@ def extract_and_save(pdf_url: str, scheme_name: str, is_sid: bool = False, auto_
     if "lock_in_period" not in fields_to_extract:
         fields_to_extract.append("lock_in_period")
 
+    # fund_manager is hardcoded in scraper.py — skip PDF extraction
+    # (PDF regex captures garbage phrases instead of proper names)
+    SKIP_FROM_PDF = ["fund_manager"]
+
     fields_saved = 0
     for field_name in fields_to_extract:
+        if field_name in SKIP_FROM_PDF:
+            continue
         value = find_field(field_name, text_for_search, scheme_name)
         if value:
             try:
