@@ -67,8 +67,7 @@ FIELD_PATTERNS = {
         r"managed\s*by[:\-\s]+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3})",
     ],
     "aum": [
-        r"aum\s+as\s+on[^`₹\n]*?[`₹]\s*([\d,]+\.?\d*)\s*crores?",
-        r"aum[^|\n]*?[|\n][^`₹]*?[`₹]\s*([\d,]+\.?\d*)\s*crores?",
+        r"AUM\s+as\s+on[^|]*\|\s*₹?\s*([\d,]+\.?\d*)\s*(?:Crores?|Cr\.?)",
         r"aum[\s\S]*?(?:rs\.?\s*|inr\s*|₹\s*)?((?!20\d{2}\b)(?:\d[\d,.]*\d))\s*crores?",
         r"assets\s*under\s*management[\s\S]*?(?:rs\.?\s*|inr\s*|₹\s*)?((?!20\d{2}\b)(?:\d[\d,.]*\d))\s*crores?",
     ],
@@ -148,6 +147,12 @@ def find_field(field_name: str, text: str, scheme_name: str) -> Optional[str]:
                 # Return the first captured group, stripped
                 value = match.group(1).strip()
                 if value:
+                    if field_name == "aum":
+                        try:
+                            if float(value.replace(',', '')) < 1000:
+                                continue # Skip, value too small to be AUM
+                        except ValueError:
+                            pass
                     return value
         except re.error:
             continue
