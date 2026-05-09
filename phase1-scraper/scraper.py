@@ -45,6 +45,14 @@ SCHEME_PAGES = [
     },
 ]
 
+# Hardcoded fund managers for target schemes
+FUND_MANAGERS = {
+  'SBI Bluechip Fund': 'Saurabh Pant',
+  'SBI Flexicap Fund': 'R. Srinivasan',
+  'SBI ELSS Tax Saver Fund': 'Dinesh Balachandran',
+  'SBI Small Cap Fund': 'R. Srinivasan'
+}
+
 # Reference pages: extract visible text as single field rows
 REFERENCE_PAGES = [
     {
@@ -71,21 +79,22 @@ REFERENCE_PAGES = [
 ]
 
 # Factsheet fallback URLs (used if auto-discover fails)
+# Last verified: March 2026 — all 4 return HTTP 200
 FACTSHEET_FALLBACK = [
     (
-        "https://www.sbimf.com/docs/default-source/scheme-factsheets/sbi-largecap-fund-factsheet-january-2026.pdf",
+        "https://www.sbimf.com/docs/default-source/scheme-factsheets/sbi-largecap-fund-factsheet-march-2026.pdf",
         "SBI Bluechip Fund",
     ),
     (
-        "https://www.sbimf.com/docs/default-source/scheme-factsheets/sbi-flexicap-fund-factsheet-january-2026.pdf",
+        "https://www.sbimf.com/docs/default-source/scheme-factsheets/sbi-flexicap-fund-factsheet-march-2026.pdf",
         "SBI Flexicap Fund",
     ),
     (
-        "https://www.sbimf.com/docs/default-source/scheme-factsheets/sbi-elss-tax-saver-fund-factsheet-january-2026.pdf",
+        "https://www.sbimf.com/docs/default-source/scheme-factsheets/sbi-elss-tax-saver-fund-factsheet-march-2026.pdf",
         "SBI ELSS Tax Saver Fund",
     ),
     (
-        "https://www.sbimf.com/docs/default-source/scheme-factsheets/sbi-small-cap-fund-factsheet-january-2026.pdf",
+        "https://www.sbimf.com/docs/default-source/scheme-factsheets/sbi-small-cap-fund-factsheet-march-2026.pdf",
         "SBI Small Cap Fund",
     ),
 ]
@@ -108,7 +117,7 @@ SCHEME_FIELDS = [
     "minimum_lumpsum",
     "riskometer_level",
     "benchmark_index",
-    "fund_manager",
+    # "fund_manager" removed from scraper — hardcoded in FIX 2
     "aum",
     "scheme_category",
 ]
@@ -203,14 +212,8 @@ def extract_fields_from_text(full_text: str) -> dict:
         val = re.sub(r"^Scheme Benchmark[:\-\s]*", "", val, flags=re.IGNORECASE).title().strip()
         fields["benchmark_index"] = val
 
-    # fund_manager
-    m = re.search(
-        r"fund\s*manager[s]?[:\-\s]+([A-Za-z][a-z]+(?:\s+[A-Za-z][a-z]+){1,3})",
-        full_text,  # use original case for names
-    )
-    if m:
-        fields["fund_manager"] = m.group(1).strip()
-
+    # fund_manager — logic removed, hardcoded in scrape_scheme_page
+    
     # aum (Refined)
     # Using negative lookahead to skip 20xx years
     m = re.search(
@@ -356,6 +359,18 @@ async def scrape_scheme_page(page, scheme_info: dict, index: int, total: int) ->
                 source_url=url,
                 is_pdf=False,
             )
+
+        # FIX 2: Insert hardcoded fund manager
+        if scheme_name in FUND_MANAGERS:
+            insert_field(
+                scheme_name=scheme_name,
+                field_name="fund_manager",
+                field_value=FUND_MANAGERS[scheme_name],
+                source_url=url,
+                is_pdf=False
+            )
+            print(f"  Saved hardcoded fund_manager: {FUND_MANAGERS[scheme_name]}")
+
         print(f"  Saved {len(fields)} fields for {scheme_name}.")
         return True
 

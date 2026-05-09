@@ -66,8 +66,8 @@ def init_db():
                 );
             """)
 
-            # HNSW index for vector search
-            cur.execute("CREATE INDEX ON chunks USING hnsw (embedding vector_cosine_ops);")
+            # HNSW index for vector search (Commented out: 2000 dim limit exceeded by 3072 dim Gemini embeddings)
+            # cur.execute("CREATE INDEX ON chunks USING hnsw (embedding vector_cosine_ops);")
 
             cur.execute("""
                 CREATE INDEX IF NOT EXISTS scheme_fields_scheme_idx
@@ -97,8 +97,10 @@ def init_db():
 def insert_field(scheme_name, field_name, field_value, source_url, is_pdf=False):
     """
     Insert a single extracted field row into scheme_fields.
-    Returns the newly created row's UUID.
+    Returns the newly created row's UUID, or None if skipped.
     """
+    if not field_value:  # FIX 1: skip None or empty values silently
+        return None
     conn = get_connection()
     try:
         with conn.cursor() as cur:
@@ -110,18 +112,23 @@ def insert_field(scheme_name, field_name, field_value, source_url, is_pdf=False)
                 ON CONFLICT (scheme_name, field_name) 
                 DO UPDATE SET 
                   field_value = EXCLUDED.field_value,
-                  source_url = EXCLUDED.source_url,
+                  source_url = CASE 
+                    WHEN scheme_fields.is_pdf = TRUE THEN scheme_fields.source_url
+                    ELSE EXCLUDED.source_url
+                  END,
+                  is_pdf = CASE
+                    WHEN scheme_fields.is_pdf = TRUE THEN TRUE
+                    ELSE EXCLUDED.is_pdf
+                  END,
                   scraped_at = NOW(),
-                  is_pdf = EXCLUDED.is_pdf,
                   status = 'active'
-                WHERE (scheme_fields.is_pdf = TRUE OR EXCLUDED.is_pdf = FALSE)
                 RETURNING id;
                 """,
                 (scheme_name, field_name, field_value, source_url, is_pdf),
             )
-            row_id = cur.fetchone()[0]
+            row = cur.fetchone()  # FIX: may be None if WHERE blocked the upsert
             conn.commit()
-            return row_id
+            return row[0] if row else None
     finally:
         conn.close()
 
@@ -159,7 +166,14 @@ def insert_chunk(field_id, chunk_text, embedding, source_url, scheme_name):
                 """
                 INSERT INTO chunks 
                 (field_id, chunk_text, embedding, source_url, scheme_name)
-                VALUES (%s, %s, %s::vector, %s, %s);
+                VALUES (%s, %s, %s::vector, %s, %s)
+                ON CONFLICT (field_id) 
+                DO UPDATE SET
+                  chunk_text = EXCLUDED.chunk_text,
+                  embedding = EXCLUDED.embedding,
+                  source_url = EXCLUDED.source_url,
+                  scheme_name = EXCLUDED.scheme_name,
+                  embedded_at = NOW();
                 """,
                 (field_id, chunk_text, embedding, source_url, scheme_name),
             )

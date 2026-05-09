@@ -58,7 +58,8 @@ FIELD_PATTERNS = {
         r"(low|moderate|moderately\s*high|high|very\s*high)\s*risk[^\n]*",
     ],
     "benchmark_index": [
-        r"benchmark[^\n]*?(?:index)?[:\-\s]+([\w\s\-&]+(?:index|500|sensex|nifty|bse|nse)[^\n]*)",
+        r"(?:first\s+tier\s+)?benchmark[^:\n]*?:\s*([^\n|]+(?:index|500|sensex|nifty|bse|nse|tri)[^\n|]*)",
+        r"benchmark[^:\n]*?:\s*([^\n|]+)",
         r"(?:benchmark|index)[^\n]*?:\s*([^\n]+)",
     ],
     "fund_manager": [
@@ -66,9 +67,10 @@ FIELD_PATTERNS = {
         r"managed\s*by[:\-\s]+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3})",
     ],
     "aum": [
-        r"aum[\s\S]*?(?:rs\.?\s*|inr\s*|₹\s*)?((?!20\d{2}\b)(?:\d[\d,.]*\d|\d\s*(?:cr|crore|lakh|million|billion)))[^\n]*",
-        r"assets\s*under\s*management[\s\S]*?(?:rs\.?\s*|inr\s*|₹\s*)?((?!20\d{2}\b)(?:\d[\d,.]*\d|\d\s*(?:cr|crore|lakh|million|billion)))[^\n]*",
-        r"corpus[\s\S]*?(?:rs\.?\s*|inr\s*|₹\s*)?((?!20\d{2}\b)(?:\d[\d,.]*\d|\d\s*(?:cr|crore|lakh|million|billion)))[^\n]*",
+        r"aum\s+as\s+on[^`₹\n]*?[`₹]\s*([\d,]+\.?\d*)\s*crores?",
+        r"aum[^|\n]*?[|\n][^`₹]*?[`₹]\s*([\d,]+\.?\d*)\s*crores?",
+        r"aum[\s\S]*?(?:rs\.?\s*|inr\s*|₹\s*)?((?!20\d{2}\b)(?:\d[\d,.]*\d))\s*crores?",
+        r"assets\s*under\s*management[\s\S]*?(?:rs\.?\s*|inr\s*|₹\s*)?((?!20\d{2}\b)(?:\d[\d,.]*\d))\s*crores?",
     ],
     "scheme_category": [
         r"(?:scheme|fund)\s*categor[yi][^\n]*?:\s*([^\n]+)",
@@ -210,6 +212,8 @@ def extract_and_save(pdf_url: str, scheme_name: str, is_sid: bool = False, auto_
         value = find_field(field_name, text_for_search, scheme_name)
         if value:
             try:
+                if 'factsheet' in pdf_url.lower():
+                    print(f"SAVING: {field_name} = {str(value)[:30]} | URL: {pdf_url}")
                 insert_field(
                     scheme_name=scheme_name,
                     field_name=field_name,
