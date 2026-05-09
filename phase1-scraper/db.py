@@ -2,9 +2,7 @@
 db.py — PostgreSQL connection + schema initialization
 Uses DATABASE_URL from environment (never hardcoded).
 
-NOTE (local testing): pgvector/chunks table removed.
-Embedding storage is handled by ChromaDB (embedder.py).
-Switch back to pgvector for Railway deployment.
+Uses pgvector for vector storage in chunks table.
 """
 
 import os
