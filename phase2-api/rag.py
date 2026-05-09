@@ -50,6 +50,27 @@ def check_statement_question(question: str) -> bool:
     q = question.lower()
     return any(k in q for k in keywords)
 
+
+def normalize_question(question: str) -> str:
+    """Map common scheme name aliases to canonical names."""
+    aliases = {
+        "sbi large cap fund": "SBI Bluechip Fund",
+        "sbi largecap fund": "SBI Bluechip Fund",
+        "sbi bluechip": "SBI Bluechip Fund",
+        "sbi elss": "SBI ELSS Tax Saver Fund",
+        "sbi tax saver": "SBI ELSS Tax Saver Fund",
+        "sbi long term equity": "SBI ELSS Tax Saver Fund",
+        "sbi flexi cap": "SBI Flexicap Fund",
+        "sbi flexicap": "SBI Flexicap Fund",
+        "sbi small cap": "SBI Small Cap Fund",
+        "sbi smallcap": "SBI Small Cap Fund",
+    }
+    q_lower = question.lower()
+    for alias, canonical in aliases.items():
+        if alias in q_lower:
+            question = question.lower().replace(alias, canonical)
+    return question
+
 def search_chunks(collection, embedding: List[float], n_results: int = 3, question: str = None):
     """
     Search Neon pgvector for relevant chunks.
@@ -68,6 +89,9 @@ def search_chunks(collection, embedding: List[float], n_results: int = 3, questi
                 "To download your SBI Mutual Fund account statement or capital gains statement, visit online.sbimf.com/statement and enter your folio number to receive the statement on your registered email. You can also download a Consolidated Account Statement (CAS) covering all mutual funds by visiting amfiindia.com/online-center/download-cas and entering your PAN and email."
             ]]
         }
+
+    # Normalize scheme name aliases before embedding
+    question = normalize_question(question) if question else question
 
     print(f"DEBUG: Querying Neon pgvector...")
     conn = db.get_connection()
@@ -126,7 +150,7 @@ def generate_answer(question: str, context: str) -> str:
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a facts-only assistant for SBI Mutual Fund schemes. Answer in maximum 3 sentences using ONLY the context provided. Do not add information not in context. Do not give investment advice."
+                    "content": "You are a facts-only assistant for SBI Mutual Fund schemes. Answer in maximum 3 sentences using ONLY the context provided. Do not add information not in context. Do not give investment advice. Note: SBI Large Cap Fund and SBI Bluechip Fund are the same fund. Always refer to it as SBI Bluechip Fund."
                 },
                 {
                     "role": "user", 
