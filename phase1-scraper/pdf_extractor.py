@@ -164,7 +164,7 @@ def find_field(field_name: str, text: str, scheme_name: str) -> Optional[str]:
     return None
 
 
-def extract_and_save(pdf_url: str, scheme_name: str, is_sid: bool = False, auto_detect_scheme: bool = False):
+def extract_and_save(pdf_url: str, scheme_name: str, is_sid: bool = False, auto_detect_scheme: bool = False, is_factsheet: bool = False):
     """
     Main entry point: download PDF, extract text, find fields, save to DB.
     If field not found — skip silently.
@@ -177,6 +177,8 @@ def extract_and_save(pdf_url: str, scheme_name: str, is_sid: bool = False, auto_
                             100+ pages; key tables appear deep in the document).
         auto_detect_scheme: If True, detect scheme name from PDF text first
                             (for TER disclosure PDFs). Falls back to scheme_name.
+        is_factsheet:       If True, skip exit_load/exit_load_period fields
+                            (KIM/SID PDFs have more authoritative data).
     """
     print(f"  Downloading PDF: {pdf_url}")
     try:
@@ -220,10 +222,14 @@ def extract_and_save(pdf_url: str, scheme_name: str, is_sid: bool = False, auto_
     # fund_manager is hardcoded in scraper.py — skip PDF extraction
     # (PDF regex captures garbage phrases instead of proper names)
     SKIP_FROM_PDF = ["fund_manager"]
+    # Factsheet PDFs should not override KIM/SID for exit load fields
+    SKIP_FROM_FACTSHEET = ["exit_load", "exit_load_period"]
 
     fields_saved = 0
     for field_name in fields_to_extract:
         if field_name in SKIP_FROM_PDF:
+            continue
+        if is_factsheet and field_name in SKIP_FROM_FACTSHEET:
             continue
         value = find_field(field_name, text_for_search, scheme_name)
         if value:

@@ -587,7 +587,7 @@ async def main():
     for idx, (scheme_name, pdf_url) in enumerate(factsheet_items, 1):
         print(f"Extracting PDF {idx}/{total_factsheets}: Factsheet — {scheme_name}")
         try:
-            extract_and_save(pdf_url, scheme_name)
+            extract_and_save(pdf_url, scheme_name, is_factsheet=True)
             successes += 1
         except Exception as e:
             print(f"  ERROR processing factsheet for {scheme_name}: {e}")
