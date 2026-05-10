@@ -54,8 +54,8 @@ def check_statement_question(question: str) -> bool:
 def normalize_question(question: str) -> str:
     """Map common scheme name aliases to canonical names."""
     aliases = {
-        "sbi large cap fund": "SBI Bluechip Fund",
-        "sbi largecap fund": "SBI Bluechip Fund",
+        "sbi large cap": "SBI Bluechip Fund",
+        "sbi largecap": "SBI Bluechip Fund",
         "sbi bluechip": "SBI Bluechip Fund",
         "sbi elss": "SBI ELSS Tax Saver Fund",
         "sbi tax saver": "SBI ELSS Tax Saver Fund",
@@ -68,8 +68,23 @@ def normalize_question(question: str) -> str:
     q_lower = question.lower()
     for alias, canonical in aliases.items():
         if alias in q_lower:
-            question = question.lower().replace(alias, canonical)
+            result = q_lower.replace(alias, canonical)
+            # Remove trailing duplicate " fund" after canonical name
+            result = result.replace(canonical + " fund", canonical)
+            return result
     return question
+
+def detect_scheme(question: str) -> str:
+    schemes = [
+        'SBI Bluechip Fund',
+        'SBI Flexicap Fund', 
+        'SBI ELSS Tax Saver Fund',
+        'SBI Small Cap Fund'
+    ]
+    for scheme in schemes:
+        if scheme.lower() in question.lower():
+            return scheme
+    return None
 
 def search_chunks(collection, embedding: List[float], n_results: int = 3, question: str = None):
     """
@@ -91,7 +106,10 @@ def search_chunks(collection, embedding: List[float], n_results: int = 3, questi
         }
 
     # Normalize scheme name aliases before embedding
-    question = normalize_question(question) if question else question
+    if question:
+        print(f"DEBUG original: {question}")
+        question = normalize_question(question)
+        print(f"DEBUG normalized: {question}")
 
     print(f"DEBUG: Querying Neon pgvector...")
     conn = db.get_connection()
@@ -101,19 +119,34 @@ def search_chunks(collection, embedding: List[float], n_results: int = 3, questi
 
     try:
         with conn.cursor() as cur:
-            # ORDER BY embedding <=> %s::vector (Cosine distance)
-            # Threshold 0.4 distance = 0.6 similarity
-            cur.execute(
-                """
-                SELECT chunk_text, source_url, scheme_name, field_id,
-                       1 - (embedding <=> %s::vector) as similarity
-                FROM chunks
-                WHERE 1 - (embedding <=> %s::vector) > 0.6
-                ORDER BY embedding <=> %s::vector
-                LIMIT %s;
-                """,
-                (embedding, embedding, embedding, n_results),
-            )
+            target_scheme = None
+            if question:
+                target_scheme = detect_scheme(question)
+
+            if target_scheme:
+                cur.execute(
+                    """
+                    SELECT chunk_text, source_url, scheme_name, field_id,
+                           1 - (embedding <=> %s::vector) as similarity
+                    FROM chunks
+                    WHERE scheme_name = %s AND 1 - (embedding <=> %s::vector) > 0.6
+                    ORDER BY embedding <=> %s::vector
+                    LIMIT %s;
+                    """,
+                    (embedding, target_scheme, embedding, embedding, n_results),
+                )
+            else:
+                cur.execute(
+                    """
+                    SELECT chunk_text, source_url, scheme_name, field_id,
+                           1 - (embedding <=> %s::vector) as similarity
+                    FROM chunks
+                    WHERE 1 - (embedding <=> %s::vector) > 0.6
+                    ORDER BY embedding <=> %s::vector
+                    LIMIT %s;
+                    """,
+                    (embedding, embedding, embedding, n_results),
+                )
             rows = cur.fetchall()
 
         documents = [row[0] for row in rows]

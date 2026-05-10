@@ -30,7 +30,8 @@ FIELD_PATTERNS = {
         r"expense ratio[^\n]*?regular[^\n]*?(\d+\.?\d*\s*%)",
     ],
     "exit_load": [
-        r"exit\s*load[^\n]*?(\d+\.?\d*\s*%[^\n]*)",
+        r"exit\s*load[^\n]*?(\d+\.?\d*\s*%[^\n]{0,100})",
+        r"exit\s*load[^\n]*:(.*?)(?:\n|$)",
         r"exit\s*load[^\n]*?(nil|none|zero|no\s*exit)[^\n]*",
     ],
     "exit_load_period": [
@@ -158,7 +159,30 @@ def find_field(field_name: str, text: str, scheme_name: str) -> Optional[str]:
                                 continue # Skip, value too small to be AUM
                         except ValueError:
                             pass
-                    return value
+                    
+                    if field_name == "exit_load":
+                        # 1. Keep up to first newline
+                        value = value.split('\n')[0].strip()
+                        
+                        # Special ELSS case: lock-in usually means no exit load
+                        if "elss" in scheme_name.lower() or "tax saver" in scheme_name.lower() or "long term equity" in scheme_name.lower():
+                             if "1%" in value and len(value) < 15:
+                                 return "Nil (3-year lock-in applies)"
+
+                        # 2. Remove specific trailing words
+                        bad_trailers = ["so the", "so", "the", "and", "or", "a", "applicable"]
+                        for trailer in bad_trailers:
+                            if value.lower().endswith(" " + trailer) or value.lower().endswith("," + trailer):
+                                value = re.sub(r'[, ]+' + re.escape(trailer) + r'$', '', value, flags=re.IGNORECASE).strip()
+                        
+                        # 3. Hardcoded fallback if short (e.g. "1%,")
+                        if len(value) < 10:
+                            period = find_field('exit_load_period', text, scheme_name)
+                            if period:
+                                clean_val = value.replace('%', '').strip(' ,')
+                                value = f"{clean_val}% if redeemed within {period}"
+                    
+                    return value.strip() if value else None
         except re.error:
             continue
     return None
