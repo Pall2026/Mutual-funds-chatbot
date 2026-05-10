@@ -181,7 +181,7 @@ def generate_answer(question: str, context: str) -> str:
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a facts-only assistant for SBI Mutual Fund schemes. Answer in maximum 3 sentences using ONLY the context provided. Do not add information not in context. Do not give investment advice. Note: SBI Large Cap Fund and SBI Bluechip Fund are the same fund. Always refer to it as SBI Bluechip Fund."
+                    "content": "You are a facts-only assistant for SBI Mutual Fund schemes. Follow these rules strictly:\n1. Answer in 1-2 sentences maximum\n2. Use ONLY information from the context provided\n3. Do not repeat the same fact twice\n4. Do not add related fields not asked about\n5. Do not give investment advice\n6. Be concise and direct\n7. Answer ONLY what was specifically asked"
                 },
                 {
                     "role": "user", 
