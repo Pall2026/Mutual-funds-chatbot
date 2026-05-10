@@ -3,7 +3,6 @@
 # SBI MF FAQ Assistant — Architecture v1.2
 # This file is the single source of truth.
 # All phases must follow this exactly.
-# Do not deviate without CTO approval.
 
 ---
 
