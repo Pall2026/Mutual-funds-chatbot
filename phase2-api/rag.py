@@ -65,24 +65,27 @@ def normalize_question(question: str) -> str:
         "sbi small cap": "SBI Small Cap Fund",
         "sbi smallcap": "SBI Small Cap Fund",
     }
+    import re
     q_lower = question.lower()
     for alias, canonical in aliases.items():
         if alias in q_lower:
-            result = q_lower.replace(alias, canonical)
+            # Replace alias with canonical name, preserving case of the rest of the question
+            result = re.sub(re.escape(alias), canonical, question, flags=re.IGNORECASE)
             # Remove trailing duplicate " fund" after canonical name
-            result = result.replace(canonical + " fund", canonical)
+            result = re.sub(re.escape(canonical) + r"(?i:\s+fund)", canonical, result, flags=re.IGNORECASE)
             return result
     return question
 
-def detect_scheme(question: str) -> str:
+def detect_scheme(question: str) -> Optional[str]:
     schemes = [
         'SBI Bluechip Fund',
         'SBI Flexicap Fund', 
         'SBI ELSS Tax Saver Fund',
         'SBI Small Cap Fund'
     ]
+    q_lower = question.lower()
     for scheme in schemes:
-        if scheme.lower() in question.lower():
+        if scheme.lower() in q_lower:
             return scheme
     return None
 
@@ -105,11 +108,6 @@ def search_chunks(collection, embedding: List[float], n_results: int = 3, questi
             ]]
         }
 
-    # Normalize scheme name aliases before embedding
-    if question:
-        print(f"DEBUG original: {question}")
-        question = normalize_question(question)
-        print(f"DEBUG normalized: {question}")
 
     print(f"DEBUG: Querying Neon pgvector...")
     conn = db.get_connection()

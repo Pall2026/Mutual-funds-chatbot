@@ -64,6 +64,10 @@ def ask_question(req: AskRequest):
     try:
         print(f"DEBUG: Question received: {question}")
         try:
+            print(f"DEBUG original: {question}")
+            question = rag.normalize_question(question)
+            print(f"DEBUG normalized: {question}")
+            
             query_embedding = rag.embed_query(question)
             search_results = rag.search_chunks(None, query_embedding, n_results=3, question=question)
             
