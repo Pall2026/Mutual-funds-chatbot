@@ -237,15 +237,15 @@ PHASE 3 — /phase3-frontend only
 ---
 
 ## DEPLOYMENT URLS
-Backend API: https://mutual-funds-chatbot-api.onrender.com
-Frontend:    https://mutual-funds-chatbot.vercel.app
+Backend API: https://sbi-mf-api-us.onrender.com/health
+Frontend:    https://mutual-funds-chatbot.vercel.app/
 Database:    Neon.tech (Singapore region)
 
 ---
 
 ## MANUAL TEST CHECKLIST
 
-Phase 1 SQL test (run in Railway PostgreSQL console):
+Phase 1 SQL test (run in Neon SQL Editor):
 SELECT scheme_name, field_name, field_value 
 FROM scheme_fields 
 WHERE scheme_name = 'SBI Bluechip Fund';
