@@ -47,7 +47,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({ onSubmit, isLoading }) => {
                         type="text"
                         value={input}
                         onChange={handleInputChange}
-                        placeholder="Ask a factual question..."
+                        placeholder={isLoading ? "Fetching answer from official sources..." : "Ask a factual question..."}
                         disabled={isLoading}
                         className="w-full p-4 pr-16 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1B4F8A] disabled:bg-gray-50 transition-all"
                     />
