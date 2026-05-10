@@ -9,12 +9,12 @@
 
 ## STACK
 - Scraper     : Python + Playwright (phase1-scraper/)
-- Database    : PostgreSQL + pgvector on Railway
+- Database    : PostgreSQL + pgvector on Neon.tech
 - Embeddings  : Gemini gemini-embedding-001
-- LLM         : Gemini 1.5 Flash (gemini-flash-latest)
-- Backend API : FastAPI on Railway (phase2-api/)
+- LLM         : Groq llama-3.1-8b-instant
+- Backend API : FastAPI on Render.com (phase2-api/)
 - Frontend    : Next.js on Vercel (phase3-frontend/)
-- Scheduler   : Railway built-in Cron
+- Scheduler   : Render Cron Job (monthly)
 - Total cost  : $0 (all free tiers)
 
 ---
@@ -78,9 +78,7 @@ CREATE TABLE chunks (
   embedded_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- IMPORTANT: Use hnsw NOT ivfflat
--- ivfflat breaks with fewer than 100 rows
-CREATE INDEX ON chunks USING hnsw (embedding vector_cosine_ops);
+-- CREATE INDEX ON chunks USING hnsw (embedding vector_cosine_ops);
 CREATE INDEX ON scheme_fields(scheme_name);
 CREATE INDEX ON scheme_fields(field_name);
 
@@ -174,22 +172,21 @@ sbimf.com directly."
 from fastapi.middleware.cors import CORSMiddleware
 app.add_middleware(
   CORSMiddleware,
-  allow_origins=["https://your-app.vercel.app"],
+  allow_origins=["https://mutual-funds-chatbot.vercel.app"],
   allow_methods=["POST", "GET"],
   allow_headers=["*"],
 )
--- Replace your-app.vercel.app with real URL in Phase 3
+-- Replace with real Vercel URL in Phase 3
 
 ---
 
-## RAILWAY CONFIG (phase1-scraper/railway.toml)
+## RENDER CONFIG (phase1-scraper/Dockerfile)
 
 [build]
 builder = "dockerfile"
 
-[cron]
-schedule = "0 2 1 * *"
 command = "python scraper.py && python embedder.py"
+-- Note: Render Cron Jobs are configured in the Render Dashboard
 
 -- IMPORTANT: scraper.py must sys.exit(1) on any error
 -- && ensures embedder only runs if scraper succeeds
@@ -198,12 +195,15 @@ command = "python scraper.py && python embedder.py"
 
 ## ENVIRONMENT VARIABLES
 
-Railway (both phase1 and phase2 services):
-- DATABASE_URL   → auto-provided by Railway PostgreSQL
+Neon.tech (both phase1 and phase2 services):
+- DATABASE_URL   → auto-provided by Neon.tech PostgreSQL
+
+Render.com (phase2):
 - GEMINI_API_KEY → from aistudio.google.com
+- GROQ_API_KEY   → from console.groq.com
 
 Vercel (phase3):
-- API_URL → Railway FastAPI service URL
+- API_URL → Render.com FastAPI service URL
 -- NOTE: NO NEXT_PUBLIC_ prefix — keeps URL server-side only
 -- Use in api/ask/route.ts proxy only, never client-side
 
@@ -233,6 +233,13 @@ PHASE 3 — /phase3-frontend only
   Done when: Live Vercel URL working end to end
   Test: Use as real user, check all 3 chips work
   DO NOT touch phase1-scraper or phase2-api
+
+---
+
+## DEPLOYMENT URLS
+Backend API: https://mutual-funds-chatbot-api.onrender.com
+Frontend:    https://mutual-funds-chatbot.vercel.app
+Database:    Neon.tech (Singapore region)
 
 ---
 
