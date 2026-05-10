@@ -60,3 +60,5 @@ chroma_data/
 phase1-scraper/chroma_data/
 chroma_data/
 phase1-scraper/chroma_data/
+phase3-frontend/.next/
+phase3-frontend/node_modules/
