@@ -10,7 +10,7 @@
 - Scraper     : Python + Playwright (phase1-scraper/)
 - Database    : PostgreSQL + pgvector on Neon.tech
 - Embeddings  : Gemini gemini-embedding-001
-- LLM         : Groq llama-3.1-8b-instant
+- LLM         : Groq openai/gpt-oss-20b
 - Backend API : FastAPI on Render.com (phase2-api/)
 - Frontend    : Next.js on Vercel (phase3-frontend/)
 - Scheduler   : Render Cron Job (monthly)

@@ -13,7 +13,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 EMBEDDING_MODEL = "models/gemini-embedding-001"
-GROQ_MODEL = "llama-3.1-8b-instant"
+GROQ_MODEL = "openai/gpt-oss-20b"
 print(f"INFO: Using Groq model: {GROQ_MODEL}")
 
 client = None
@@ -176,6 +176,8 @@ def generate_answer(question: str, context: str) -> str:
         return "I could not find a reliable source for this. Please visit sbimf.com directly."
 
     try:
+        print(f"--- GROQ API CALL ---")
+        print(f"Model sent in request: {GROQ_MODEL}")
         completion = groq_client.chat.completions.create(
             model=GROQ_MODEL,
             messages=[
@@ -188,9 +190,12 @@ def generate_answer(question: str, context: str) -> str:
                     "content": f"Context:\n{context}\n\nQuestion: {question}"
                 }
             ],
-            max_tokens=200
+            max_tokens=500
         )
-        return completion.choices[0].message.content.strip()
+        response_text = completion.choices[0].message.content.strip()
+        print(f"Response from Groq: {response_text}")
+        print(f"---------------------")
+        return response_text
     except Exception as e:
         print(f"Groq API error: {e}")
         return "Something went wrong with the answer generation. Please try again."

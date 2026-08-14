@@ -30,6 +30,7 @@ FIELD_PATTERNS = {
         r"expense ratio[^\n]*?regular[^\n]*?(\d+\.?\d*\s*%)",
     ],
     "exit_load": [
+        r"exit\s*load(?:[^:\n]*):\s*(for exit[\s\S]{20,250}?(?:nil|zero|none)[\s\S]{0,50}(?:\.|$))",
         r"exit\s*load[^\n]*?(\d+\.?\d*\s*%[^\n]{0,100})",
         r"exit\s*load[^\n]*:(.*?)(?:\n|$)",
         r"exit\s*load[^\n]*?(nil|none|zero|no\s*exit)[^\n]*",
@@ -161,8 +162,14 @@ def find_field(field_name: str, text: str, scheme_name: str) -> Optional[str]:
                             pass
                     
                     if field_name == "exit_load":
-                        # 1. Keep up to first newline
-                        value = value.split('\n')[0].strip()
+                        # 1. Clean up embedded newlines
+                        value = value.replace('\n', ' ').strip()
+                        
+                        # 1.5 Cut off cleanly if it is just a short string
+                        if len(value) > 200:
+                            pass # For very long extracted strings we keep them as they are usually the multi-tier rules
+                        else:
+                            value = value.split('\n')[0].strip()
                         
                         # Special ELSS case: lock-in usually means no exit load
                         if "elss" in scheme_name.lower() or "tax saver" in scheme_name.lower() or "long term equity" in scheme_name.lower():
@@ -254,6 +261,8 @@ def extract_and_save(pdf_url: str, scheme_name: str, is_sid: bool = False, auto_
         if field_name in SKIP_FROM_PDF:
             continue
         if is_factsheet and field_name in SKIP_FROM_FACTSHEET:
+            continue
+        if is_sid and field_name in SKIP_FROM_FACTSHEET:
             continue
         value = find_field(field_name, text_for_search, scheme_name)
         if value:

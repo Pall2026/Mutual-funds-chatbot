@@ -80,24 +80,7 @@ REFERENCE_PAGES = [
 
 # Factsheet fallback URLs (used if auto-discover fails)
 # Last verified: March 2026 — all 4 return HTTP 200
-FACTSHEET_FALLBACK = [
-    (
-        "https://www.sbimf.com/docs/default-source/scheme-factsheets/sbi-largecap-fund-factsheet-march-2026.pdf",
-        "SBI Bluechip Fund",
-    ),
-    (
-        "https://www.sbimf.com/docs/default-source/scheme-factsheets/sbi-flexicap-fund-factsheet-march-2026.pdf",
-        "SBI Flexicap Fund",
-    ),
-    (
-        "https://www.sbimf.com/docs/default-source/scheme-factsheets/sbi-elss-tax-saver-fund-factsheet-march-2026.pdf",
-        "SBI ELSS Tax Saver Fund",
-    ),
-    (
-        "https://www.sbimf.com/docs/default-source/scheme-factsheets/sbi-small-cap-fund-factsheet-march-2026.pdf",
-        "SBI Small Cap Fund",
-    ),
-]
+FACTSHEET_FALLBACK = []
 
 # Factsheet scheme keywords for auto-discovery
 FACTSHEET_SCHEME_KEYWORDS = {

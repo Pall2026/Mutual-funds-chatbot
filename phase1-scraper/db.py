@@ -110,16 +110,8 @@ def insert_field(scheme_name, field_name, field_value, source_url, is_pdf=False)
                 ON CONFLICT (scheme_name, field_name) 
                 DO UPDATE SET 
                   field_value = EXCLUDED.field_value,
-                  source_url = CASE
-                    WHEN scheme_fields.source_url LIKE '%%/kim-%%' THEN scheme_fields.source_url
-                    WHEN scheme_fields.source_url LIKE '%%/sid-%%' THEN scheme_fields.source_url
-                    WHEN scheme_fields.source_url LIKE '%%factsheet%%' THEN scheme_fields.source_url
-                    ELSE EXCLUDED.source_url
-                  END,
-                  is_pdf = CASE
-                    WHEN scheme_fields.is_pdf = TRUE THEN TRUE
-                    ELSE EXCLUDED.is_pdf
-                  END,
+                  source_url = EXCLUDED.source_url,
+                  is_pdf = EXCLUDED.is_pdf,
                   scraped_at = NOW(),
                   status = 'active'
                 RETURNING id;
