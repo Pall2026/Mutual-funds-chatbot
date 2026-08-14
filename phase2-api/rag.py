@@ -199,3 +199,4 @@ def generate_answer(question: str, context: str) -> str:
     except Exception as e:
         print(f"Groq API error: {e}")
         return "Something went wrong with the answer generation. Please try again."
+

@@ -1,0 +1,8 @@
+{
+  "python.analysis.extraPaths": [
+    "./phase1-scraper",
+    "./phase1-scraper/.venv/lib/python3.9/site-packages",
+    "./phase2-api",
+    "./phase2-api/.venv/lib/python3.9/site-packages"
+  ]
+}
